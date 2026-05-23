@@ -17,7 +17,8 @@ tiny       = par.tiny;
 u          = par.u;
 tol_gss    = par.tol_gss;
 
-%options = optimset('Display','off');
+% Total number of points for state variables
+nx = na*nz;
 
 %Solve for RHS of Bellman equation
 %{
@@ -26,29 +27,31 @@ where the max is over c in the set [0,R*a+z+b]
 Clearly, a'=R*a+z-c
 %}
 
-c_pol = zeros(na,nz);
-Tv    = zeros(na,nz);
+c_pol = zeros(nx,1);
+Tv    = zeros(nx,1);
 
-for iz=1:nz
+parfor ix=1:nx
+    [ia,iz] = ind2sub([na,nz],ix);
     z_today = z_vals(iz);
-    
+
     % Compute continuation value
     PZ_iz = PZ(iz,:);
     %Now sum over all z'
     EVz = v*PZ_iz'; %this is EV(a'), given z
-    
-    % Do the maximization
-    for ia=1:na
-        a_today  = asset_grid(ia);
-        c_max    = R*a_today+z_today+b;
-        %GSS and fminbnd return the *minimizer* of rhs_bellman
-        obj      = @(c) -( u(c)+beta*myinterp1_equi(asset_grid,EVz,R*a_today+z_today-c) );
-        optim    = GSS(obj,tiny,c_max-tiny,tol_gss);      
-        c_pol(ia,iz) = optim;
-        Tv(ia,iz)    = -obj(optim);
-    end
-end
 
+    % Do the maximization
+    a_today  = asset_grid(ia);
+    c_max    = R*a_today+z_today+b;
+    %GSS and fminbnd return the *minimizer* of rhs_bellman
+    obj      = @(c) -( u(c)+beta*myinterp1_equi(asset_grid,EVz,R*a_today+z_today-c) );
+    optim    = GSS(obj,tiny,c_max-tiny,tol_gss);
+    c_pol(ix) = optim;
+    Tv(ix)    = -obj(optim);
+
+end % end ix loop
+
+c_pol = reshape(c_pol,[na,nz]);
+Tv    = reshape(Tv,[na,nz]);
 
 end %END FUNCTION <bellman_operator>
 
