@@ -29,7 +29,7 @@ Clearly, a'=R*a+z-c
 c_pol = zeros(na,nz);
 Tv    = zeros(na,nz);
 
-for iz=1:nz
+parfor iz=1:nz
     z_today = z_vals(iz);
     
     % Compute continuation value
